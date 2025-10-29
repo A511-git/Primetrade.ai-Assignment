@@ -48,6 +48,7 @@ export const AuthProvider = ({ children }) => {
     const handleAuthSuccess = () => {
         setLoading(true);
         checkAuthStatus();
+        setView('dashboard');
     };
 
     const handleLogout = async () => {
