@@ -86,21 +86,27 @@ const loginUser = asyncHandler(async (req, res) => {
         );
     
         const cookieOptions = {
-            httpOnly: true,
-            secure: true,
-        };
-    
-        return res
-            .status(200)
-            .cookie("accessToken", accessToken, cookieOptions)
-            .cookie("refreshToken", refreshToken, cookieOptions)
-            .json(
-                new ApiResponse(
-                    200,
-                    { accessToken, refreshToken, loggedInUser },
-                    "Login successful"
-                )
-            );
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production", // only true for Render deploy
+  sameSite: "none",  // ✅ required for cross-site cookies (Vercel ↔ Render)
+  path: "/",          // ensure it's valid for all routes
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+};
+
+return res
+  .status(200)
+  .cookie("accessToken", accessToken, cookieOptions)
+  .cookie("refreshToken", refreshToken, {
+    ...cookieOptions,
+    maxAge: 30 * 24 * 60 * 60 * 1000, // refresh token lasts 30 days
+  })
+  .json(
+    new ApiResponse(
+      200,
+      { accessToken, refreshToken, loggedInUser },
+      "Login successful"
+    )
+  );
     } catch (error) {
         throw error instanceof ApiError ? error : new ApiError(500, "Internal server error - loginUser");
     }
@@ -120,9 +126,10 @@ const logoutUser = asyncHandler(async (req, res) => {
     
         const cookieOptions = {
             httpOnly: true,
-            secure: true,
+            secure: process.env.NODE_ENV === "production", // secure only on HTTPS
+            sameSite: "none",  // ✅ required for cross-site cookies (Vercel ↔ Render)
+            path: "/",          // clear from all routes
         };
-    
         return res
             .status(200)
             .clearCookie("accessToken", cookieOptions)
@@ -158,7 +165,9 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
         const cookieOptions = {
             httpOnly: true,
-            secure: true,
+            secure: process.env.NODE_ENV === "production", // only on HTTPS
+            sameSite: "none",  // for cross-origin
+            path: "/",          // allow access on all routes
         };
 
         return res
